@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated
 from django.core.paginator import Paginator
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication, TokenAuthentication
@@ -129,4 +130,44 @@ class NoteDetailAPI(APIView):
             return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class NoteShareAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def post(self, request, id):
+        try:
+            note = Note.objects.get(id=id, owner=request.user)
+            user_to_share_with_id = request.data.get('user_to_share_with')
+
+            if user_to_share_with_id is not None:
+                user_to_share_with = User.objects.get(id=user_to_share_with_id)
+                note.shared_with.add(user_to_share_with)
+                note.save()
+
+                return Response({"detail": "Note shared successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"detail": "user_to_share_with parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Note.DoesNotExist:
+            return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            return Response({"detail": "User to share with not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class NoteSearchAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request):
+        query = request.query_params.get('q', '')
+
+        if query:
+            notes = Note.objects.filter(owner=request.user, title__icontains=query)
+            serializer = NoteSerializer(notes, many=True)
+            return Response(serializer.data)
+        else:
+            return Response({"detail": "Please provide a search query"}, status=status.HTTP_400_BAD_REQUEST)
         
