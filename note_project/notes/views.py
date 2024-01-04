@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.core.paginator import Paginator
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication, TokenAuthentication
 from django.contrib.auth import authenticate, login, logout
-
+from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 
 class LoginAPI(APIView):
     def post(self, request):
@@ -199,16 +199,19 @@ class NoteShareAPI(APIView):
 class NoteSearchAPI(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
-    # throttle_scope = "high"
 
-    # Search Note
     def get(self, request):
         query = request.query_params.get('q', '')
 
         if query:
-            notes = Note.objects.filter(owner=request.user, title__icontains=query)
+            # Use PostgreSQL Full Text Search for efficient searching
+            vector = SearchVector("title", "content")
+            query = SearchQuery(query)
+            notes = Note.objects.annotate(rank=SearchRank(vector, query)).order_by('-rank')
+            # notes = Note.objects.annotate(rank=SearchRank(F('search_vector'), SearchQuery(query))).filter(
+            #     rank__gte=0.3
+            # ).order_by('-rank')
             serializer = NoteSerializer(notes, many=True)
             return Response(serializer.data)
         else:
             return Response({"detail": "Please provide a search query"}, status=status.HTTP_400_BAD_REQUEST)
-        
