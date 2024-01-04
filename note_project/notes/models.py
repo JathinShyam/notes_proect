@@ -7,3 +7,6 @@ class Note(models.Model):
     content = models.TextField()
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     shared_with = models.ManyToManyField(User, related_name='shared_notes', blank=True)
+
+    def __str__(self) -> str:
+        return self.owner.username + " " + str(self.owner.id) + " - " + self.title

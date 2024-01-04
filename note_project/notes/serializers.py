@@ -3,6 +3,7 @@ from .models import Note
 from django.contrib.auth.models import User
 
 class NoteSerializer(serializers.ModelSerializer):
+    owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), default=serializers.CurrentUserDefault())
     class Meta:
         model = Note
         fields = '__all__'
