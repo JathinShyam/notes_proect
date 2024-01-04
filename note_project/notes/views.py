@@ -1,17 +1,12 @@
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from .models import Note
 from .serializers import LoginSerializer, RegisterSerializer, NoteSerializer
 from rest_framework.views import APIView
-from rest_framework import viewsets
 from rest_framework import status
-from django.contrib.auth.models import User
-from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from django.core.paginator import Paginator
-from rest_framework.decorators import action
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication, TokenAuthentication
 from django.contrib.auth import authenticate, login, logout
 
@@ -71,30 +66,6 @@ class SignOutAPI(APIView):
         return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
 
 
-@api_view(['GET', 'POST'])
-@authentication_classes([SessionAuthentication, BasicAuthentication])
-@permission_classes([IsAuthenticated])
-def note(request):
-    if request.method == 'GET':
-        try:
-            notes = Note.objects.filter(owner=request.user)
-            serializer = NoteSerializer(notes, many=True)
-            return Response(serializer.data)
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    elif request.method == 'POST':
-        data = request.data
-        data['owner'] = request.user.id  # Assign the authenticated user as the owner
-        serializer = NoteSerializer(data=data)
-        
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-
 class NotesAPI(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
@@ -118,3 +89,44 @@ class NotesAPI(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class NoteDetailAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request, id):
+        try:
+            note = Note.objects.get(id=id, owner=request.user)
+            serializer = NoteSerializer(note)
+            return Response(serializer.data)
+        except Note.DoesNotExist:
+            return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request, id):
+        try:
+            note = Note.objects.get(id=id, owner=request.user)
+            serializer = NoteSerializer(note, data=request.data, partial=True)
+
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Note.DoesNotExist:
+            return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete(self, request, id):
+        try:
+            note = Note.objects.get(id=id, owner=request.user)
+            note.delete()
+            return Response({"detail": "Note deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Note.DoesNotExist:
+            return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
