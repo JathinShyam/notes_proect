@@ -16,6 +16,8 @@ class LoginAPI(APIView):
     def post(self, request):
         data = request.data
         serializer = LoginSerializer(data=data)
+
+        # If serializer is not valid.
         if not serializer.is_valid():
             return Response({
                 'status' : False,
@@ -24,14 +26,17 @@ class LoginAPI(APIView):
         
         user = authenticate(username=serializer.data['username'], password=serializer.data['password'])
 
+        # If user is not found.
         if not user:
             return Response({
                 'status' : False,
                 'message' : 'Invalid credentials',
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Generate token for the user.
         token, _ = Token.objects.get_or_create(user=user)
-        print(token)
+
+        # Returning the token.
         return Response({
             'status' : True,
             'message' : 'User logged in successfully',
@@ -41,10 +46,12 @@ class LoginAPI(APIView):
 
 
 class RegisterAPI(APIView):
+    # POST Method
     def post(self, request):
         data = request.data
         serializer = RegisterSerializer(data=data)
 
+        # If serializer is not valid.
         if not serializer.is_valid():
             return Response({
                 'status' : False,
@@ -52,6 +59,7 @@ class RegisterAPI(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
 
+        # Returning the message.
         return Response({
             'status' : True,
             'message' : 'User created successfully'
@@ -61,6 +69,8 @@ class RegisterAPI(APIView):
 
 class SignOutAPI(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
 
     def post(self, request):
         logout(request)
@@ -70,7 +80,9 @@ class SignOutAPI(APIView):
 class NotesAPI(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
+    # throttle_scope = "low"
 
+    # View Notes
     def get(self, request):
         try:
             print(request.user)
@@ -80,11 +92,13 @@ class NotesAPI(APIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    # Create Notes
     def post(self, request):
         data = request.data
         data['owner'] = request.user.id  # Assign the authenticated user as the owner
         serializer = NoteSerializer(data=data)
 
+        # Serializer check
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -95,17 +109,24 @@ class NotesAPI(APIView):
 class NoteDetailAPI(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
+    # throttle_scope = "high"
 
+    # View Note
     def get(self, request, id):
         try:
             note = Note.objects.get(id=id, owner=request.user)
             serializer = NoteSerializer(note)
             return Response(serializer.data)
+        
+        # If note is not found.
         except Note.DoesNotExist:
             return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # If any other exception occurs.
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    # Update Note
     def put(self, request, id):
         try:
             note = Note.objects.get(id=id, owner=request.user)
@@ -116,26 +137,38 @@ class NoteDetailAPI(APIView):
                 return Response(serializer.data)
             
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # If note is not found.
         except Note.DoesNotExist:
             return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # If any other exception occurs.
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    # Delete Note
     def delete(self, request, id):
         try:
             note = Note.objects.get(id=id, owner=request.user)
             note.delete()
             return Response({"detail": "Note deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        
+        # If note is not found.
         except Note.DoesNotExist:
             return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # If any other exception occurs.
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 class NoteShareAPI(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
+    # throttle_scope = "low"
 
+    # Share Note
     def post(self, request, id):
+        
         try:
             note = Note.objects.get(id=id, owner=request.user)
             user_to_share_with_id = request.data.get('user_to_share_with')
@@ -146,13 +179,19 @@ class NoteShareAPI(APIView):
                 note.save()
 
                 return Response({"detail": "Note shared successfully"}, status=status.HTTP_200_OK)
+            # If user_to_share_with is not provided.
             else:
                 return Response({"detail": "user_to_share_with parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # If note is not found.
         except Note.DoesNotExist:
             return Response({"detail": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # If user to share with is not found.
         except User.DoesNotExist:
             return Response({"detail": "User to share with not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # If any other exception occurs.
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -160,7 +199,9 @@ class NoteShareAPI(APIView):
 class NoteSearchAPI(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
+    # throttle_scope = "high"
 
+    # Search Note
     def get(self, request):
         query = request.query_params.get('q', '')
 

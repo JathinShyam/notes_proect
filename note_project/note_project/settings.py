@@ -129,6 +129,7 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# REST FRAMEWORK Authentication Settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
@@ -137,13 +138,76 @@ REST_FRAMEWORK = {
     ]
 }
 
+# REST FRAMEWORK Permission Settings
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ]
 }
 
+# REST FRAMEWORK Pagination Settings
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 100
+}
+
+# REST FRAMEWORK Throttling Settings
+REST_FRAMEWORK = {
+
+    'DEFAULT_THROTTLE_CLASSES': [
+
+        'rest_framework.throttling.AnonRateThrottle',
+
+        'rest_framework.throttling.UserRateThrottle'
+
+    ],
+
+    'DEFAULT_THROTTLE_RATES': {
+
+        'anon': '2/min',
+
+        'user': '4/min'
+
+    }
+
+}
+
+# Multiple user rate throttle
+REST_FRAMEWORK = {
+
+    'DEFAULT_THROTTLE_CLASSES': [
+
+        'notes.throttles.HighRateThrottle',
+
+        'notes.throttles.LowRateThrottle',
+
+    ],
+
+    'DEFAULT_THROTTLE_RATES': {
+
+        'high': '30/minute',
+
+        'low': '4/minute'
+
+    }
+
+}
+
+# Scoped rate throttle
+REST_FRAMEWORK = {
+
+    'DEFAULT_THROTTLE_CLASSES': [
+
+        "rest_framework.throttling.ScopedRateThrottle"
+
+    ],
+
+    'DEFAULT_THROTTLE_RATES': {
+
+        'high': '30/day',
+
+        'low': '4/day'
+
+    }
+
 }
