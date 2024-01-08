@@ -15,7 +15,6 @@ This is a Django project that provides a RESTful API for creating, managing, and
 - [Testing](#testing)
 - [Search Functionality](#search-functionality)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## Features
 
@@ -81,7 +80,7 @@ The API will be available at http://127.0.0.1:8000/.
 - (PUT) **/api/notes/:id:** Update an existing note by ID for the authenticated user.
 - (DELETE) **/api/notes/:id:** Delete a note by ID for the authenticated user.
 - (POST) **/api/notes/:id/share:** Share a note with another user for the authenticated user.
-- (GET) **/api/search?q=:query:** Search for notes based on keywords for the authenticated user.
+- (GET) **/api/search/?q=query:** Search for notes based on keywords for the authenticated user.
 
 ## Throttling
 
